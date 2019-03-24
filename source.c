@@ -11,14 +11,14 @@ typedef struct xmlNode{
   int attributeCounter;
   int childCounter;
   struct xmlNode *parentNode;
-  struct xmlAttribute *attributes[20];
-  struct xmlNode *childNodes[20];
+  struct xmlAttribute *attributes[100];
+  struct xmlNode *childNodes[100];
 
 }xmlNode;
 
 typedef struct xmlAttribute{
 
-  char keyword[100];
+  char keyword[500];
   char value[500];
 
 }xmlAttribute;
@@ -83,7 +83,7 @@ void getFirstXmlElement(char* file, char* element){
   element[j] = '\0';
 
   while(file[++j] != '<' && file[j] != '\0');
-  char temp[1000];
+  char temp[100000];
   int k = 0;
   for(k = 0; j < strlen(file);j++,k++){
     temp[k] = file[j];
@@ -155,11 +155,11 @@ void parseXmlElement(char *elementBody, xmlAttribute *attributes[], char *elemen
 
   strcpy(elementTag, strtok(elementBody, " "));
   int i = 0;
-  char **keyValues = (char**)malloc(sizeof(char*)*20);
+  char **keyValues = (char**)malloc(sizeof(char*)*50);
   char *keyValue;
   while((keyValue = strtok(NULL, " ")) != NULL){
 
-    keyValues[i] = (char*)malloc(sizeof(char) * 50);
+    keyValues[i] = (char*)malloc(sizeof(char) * 500);
     strcpy(keyValues[i++], keyValue);
   }
   i = 0;
@@ -208,7 +208,7 @@ void getXmlElementContent(char *file, char *content, char *elementName){
 
 void parseXml(char *fileName, xmlNode *root){
 
-  char file[5000];
+  char file[100000];
   FILE *fp;
   fp = fopen(fileName, "r");
   if( fp != NULL){
@@ -320,7 +320,7 @@ void createJsonFile(xmlNode *node, FILE *fp, int depth){
     if(strcmp(node->content, "") != 0){
       fprintf(fp, ", \"%s\": \"%s\"", "#text:" , node->content);
     }
-    fprintf(fp, "}\n");
+    fprintf(fp, "},\n");
   }
   else{
 

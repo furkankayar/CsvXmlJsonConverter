@@ -1,25 +1,48 @@
 {
-	"shiporder": {
-		"-orderid": "889923",
-		"-xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-		"-xsi:noNamespaceSchemaLocation": "shiporder.xsd",
-		"orderperson": "JohnSmith",
-		"shipto": {
-			"name": "OlaNordmann",
-			"address": "Langgt23",
-			"city": "4000Stavanger",
-			"country": "Norway",
+	"xs:schema": {
+		"-xmlns:xs": "http://www.w3.org/2001/XMLSchema",
+		"xs:element": {"-name": "orderperson", "-type": "xs:string"},
+		"xs:element": {"-name": "name", "-type": "xs:string"},
+		"xs:element": {"-name": "address", "-type": "xs:string"},
+		"xs:element": {"-name": "city", "-type": "xs:string"},
+		"xs:element": {"-name": "country", "-type": "xs:string"},
+		"xs:element": {"-name": "title", "-type": "xs:string"},
+		"xs:element": {"-name": "note", "-type": "xs:string"},
+		"xs:element": {"-name": "quantity", "-type": "xs:positiveInteger"},
+		"xs:element": {"-name": "price", "-type": "xs:decimal"},
+		"xs:attribute": {"-name": "orderid", "-type": "xs:string"},
+		"xs:element": {
+			"-name": "shipto",
+			"xs:complexType": {
+				"xs:sequence": {
+					"xs:element": {"-ref": "name"},
+					"xs:element": {"-ref": "address"},
+					"xs:element": {"-ref": "city"},
+					"xs:element": {"-ref": "country"},
+				},
+			},
 		},
-		"item": {
-			"title": "EmpireBurlesque",
-			"note": "SpecialEdition",
-			"quantity": "1",
-			"price": "10.90",
+		"xs:element": {
+			"-name": "item",
+			"xs:complexType": {
+				"xs:sequence": {
+					"xs:element": {"-ref": "title"},
+					"xs:element": {"-ref": "note", "-minOccurs": "0"},
+					"xs:element": {"-ref": "quantity"},
+					"xs:element": {"-ref": "price"},
+				},
+			},
 		},
-		"item": {
-			"title": "Hideyourheart",
-			"quantity": "1",
-			"price": "9.90",
+		"xs:element": {
+			"-name": "shiporder",
+			"xs:complexType": {
+				"xs:sequence": {
+					"xs:element": {"-ref": "orderperson"},
+					"xs:element": {"-ref": "shipto"},
+					"xs:element": {"-ref": "item", "-maxOccurs": "unbounded"},
+				},
+				"xs:attribute": {"-ref": "orderid", "-use": "required"},
+			},
 		},
 	},
 }
