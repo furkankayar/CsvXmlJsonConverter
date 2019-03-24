@@ -1,0 +1,25 @@
+{
+	"shiporder": {
+		"-orderid": "889923",
+		"-xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+		"-xsi:noNamespaceSchemaLocation": "shiporder.xsd",
+		"orderperson": "JohnSmith",
+		"shipto": {
+			"name": "OlaNordmann",
+			"address": "Langgt23",
+			"city": "4000Stavanger",
+			"country": "Norway",
+		},
+		"item": {
+			"title": "EmpireBurlesque",
+			"note": "SpecialEdition",
+			"quantity": "1",
+			"price": "10.90",
+		},
+		"item": {
+			"title": "Hideyourheart",
+			"quantity": "1",
+			"price": "9.90",
+		},
+	},
+}
