@@ -4,8 +4,90 @@
 #include <string.h>
 #include <json/json.h>
 
+const char* jsonRootName;
+char** csvColumnNames;
+char* csvFile;
 
+typedef struct _csvRow{
 
+	char **columns;
+	struct _csvRow *next;
+
+}csvRow;
+
+static char* readFile(char* fileName){
+
+	FILE *fp = fopen(fileName, "r");
+
+	if( fp == NULL){
+		printf("Error: %s has not been found. Please check file and try again.\n", fileName);
+		exit(0);
+	}
+	char *file = (char*)malloc(sizeof(char) * 100000);
+	char ch;
+	int counter = 0;
+
+	while((ch = getc(fp)) != EOF)	file[counter++] = ch;
+	file[counter] = '\0';
+
+	return file;
+
+}
+
+static char** csvGetRow(){
+
+	int i = 0;
+	char *row = (char*)malloc(sizeof(char) * 5000);
+	char **rowColumns = (char**)malloc(sizeof(char*) * 200);
+	if(strcmp(csvFile, "") != 0){
+		while(csvFile[i] != '\n'){
+			row[i] = csvFile[i];
+			i++;
+		}
+		row[i] = '\0';
+		csvFile = csvFile + i + 1;
+
+		char * ptr = strtok(row, ",");
+		int k = 0;
+		while(ptr != NULL){
+			rowColumns[k] = (char*)malloc(sizeof(char) * 200);
+			strcpy(rowColumns[k], ptr);
+			ptr = strtok(NULL, ",");
+			k++;
+		}
+	}
+
+	return rowColumns;
+}
+
+static csvRow* csvParseFile(){
+
+	char **columns = csvGetRow();
+	csvRow * csv_root = (csvRow*)malloc(sizeof(csvRow));
+	csvRow * csv_temp = csv_root;
+	while(columns[0] != NULL){
+
+		csv_root->columns = columns;
+		columns = csvGetRow();
+		if(columns[0] != NULL) csv_root->next = (csvRow*)malloc(sizeof(csvRow));
+		csv_root = csv_root->next;
+	}
+
+	return csv_temp;
+}
+
+static char* jsonGetRootName(json_object *jsonObj){
+
+	const char *jsonAsStr = json_object_to_json_string(jsonObj);
+	int i = 0;
+	char *rootName = (char*)malloc(sizeof(char) * 250);
+	while(jsonAsStr[i++] != '"');
+	int k = 0;
+	while(jsonAsStr[i] != '"'){
+		rootName[k++] = jsonAsStr[i++];
+	}
+	return rootName;
+}
 
 static int getXmlElementChildNumber(xmlNode *node){
 	int i = 0;
@@ -18,7 +100,7 @@ static int getXmlElementChildNumber(xmlNode *node){
 	return i;
 }
 
-static void xmlToJson(xmlNode * xml_node, json_object * jsonObj){
+static void xmlToJson(xmlNode * xml_node, json_object * jsonObj){ // PERFECTION
 
 	xmlNode *cur_node = NULL;
 	char lastName[250] = {'\0'};
@@ -84,42 +166,110 @@ static void xmlToJson(xmlNode * xml_node, json_object * jsonObj){
 	}
 }
 
+static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
+
+	json_object *object;
+	int arrLen;
+	enum json_type type;
+	json_object_object_foreach(jobj, key, val){
+
+		type = json_object_get_type(val);
+
+		switch(type){
+			case json_type_string:
+
+				xmlNewChild(xmlNode, NULL, BAD_CAST key, BAD_CAST json_object_get_string(val));
+
+			break;
+			case json_type_object:
+
+				object = val;
+				if(strcmp(key, jsonRootName) != 0){
+					xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST key);
+					xmlAddChildList(xmlNode, newNode);
+					jsonToXml(object, newNode);
+				}
+			 jsonToXml(object, xmlNode);
+
+			break;
+			case json_type_array:
+
+			  arrLen = json_object_array_length(val);
+				int i = 0;
+				for(i = 0 ; i < arrLen ; i++){
+					object = json_object_array_get_idx(val, i);
+					xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST key);
+					xmlAddChildList(xmlNode, newNode);
+					jsonToXml(object, newNode);
+				}
+
+			break;
+		}
+	}
+}
+
+static void csvToJson(csvRow* csvObj, json_object *jobj){
+
+	jobj = json_object_new_object();
+
+  int rowCounter = 1;
+	while(csvObj != NULL){
+		json_object *row = json_object_new_object();
+		int i = 0;
+		while(csvObj->columns[i] != NULL){
+			json_object * column = json_object_new_string(csvObj->columns[i]);
+			json_object_object_add(row, csvColumnNames[i], column);
+			i++;
+		}
+		char str[20];
+		sprintf(str, "row%d", rowCounter++);
+		json_object_object_add(jobj, str, row);
+		csvObj = csvObj->next;
+	}
+
+	printf("%s\n", json_object_to_json_string(jobj));
+}
+
+int main(){
 
 
-
-int main()
-{
-
-
-
+/*
  	xmlDocPtr doc = NULL;
 	xmlNode *root_element = NULL;
   xmlNode *next_element = NULL;
-	const char *Filename = "test.xml";
+	const char *fileName = "test.xml";
 	doc = xmlParseFile(Filename);
 	json_object *json_root = json_object_new_object();
 	if (doc == NULL){
-		printf("error: could not parse file %s\n", Filename);
+		printf("Error: %s has not been found. Please check the file and try again.\n", fileName);
+		exit(0);
 	}
-	else{
 
-    root_element = xmlDocGetRootElement(doc);
-		json_object *json_root = json_object_new_object();
-		xmlToJson(root_element, json_root);
-		printf("%s\n", json_object_to_json_string(json_root));
-		json_object_to_file("test.json", json_root);
 
-		//printf("%d\n", getXmlElementChildNumber(root_element));
-  }
-/*
-	json_object *jobj = json_object_new_object();
-	json_object *jstring = json_object_new_string("Test");
-	json_object *jchild = json_object_new_object();
-	json_object *str = json_object_new_string("Child baba");
-	json_object_object_add(jobj, "Name", jstring);
-	json_object_object_add(jchild, "-Element", str);
-	json_object_object_add(jobj, "Child babcm", jchild);
-	printf("%s\n", json_object_to_json_string(jobj));*/
+  root_element = xmlDocGetRootElement(doc);
+	json_object *json_root = json_object_new_object();
+	xmlToJson(root_element, json_root);
+	printf("%s\n", json_object_to_json_string(json_root));
+	json_object_to_file("test.json", json_root);
 
-	return (0);
+
+  */
+
+	/*json_object * jobj = json_tokener_parse(readFile("test.json"));
+	xmlDocPtr doc = xmlNewDoc("1.0");
+	jsonRootName = jsonGetRootName(jobj);
+	xmlNodePtr root_node = xmlNewNode(NULL, jsonRootName);
+	jsonToXml(jobj, root_node);
+	xmlDocSetRootElement(doc, root_node);
+	xmlSaveFormatFileEnc("write.xml", doc, "UTF-8", 0);*/
+
+	csvFile = readFile("inputForDebian.csv");
+	csvColumnNames = csvGetRow();
+	csvRow* csv_root;
+	csv_root = csvParseFile();
+
+	json_object *json_root;
+	csvToJson(csv_root, json_root);
+
+	return 0;
 }
