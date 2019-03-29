@@ -1,8 +1,11 @@
 
 <breakfast_menu>
-  <food id="5" adsadsa="a d s a d s a"
-     yenibirattr="f u r k a n">
+  <food>
     <name>Belgian Waffles</name>
+    <test>
+      <name>Furkan</name>
+      <surname>Kayar</surname>
+    </test>
     <price>$5.95</price>
     <description>
       Two of our famous Belgian Waffles with plenty of real maple syrup

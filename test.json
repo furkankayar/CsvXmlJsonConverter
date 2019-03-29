@@ -3,7 +3,6 @@
     [
       {
         "name":"Belgian Waffles",
-        "available": true,
         "test":{
           "name":"Furkan",
           "surname":"Kayar",
