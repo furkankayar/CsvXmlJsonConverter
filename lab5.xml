@@ -1,0 +1,18 @@
+
+<Person>
+  <Name>Ali Veli</Name>
+  <Age>Age</Age>
+  <Address>
+    <Country>Türkiye</Country>
+    <City>İzmir</City>
+    <Province>Buca</Province>
+  </Address>
+  <Parents>
+    <Parent>
+      <Mother>Ayşe</Mother>
+    </Parent>
+    <Parent>
+      <Father>Mehmet</Father>
+    </Parent>
+  </Parents>
+</Person>

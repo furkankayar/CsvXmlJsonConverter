@@ -176,24 +176,23 @@ static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
 		type = json_object_get_type(val);
 
 		switch(type){
-			case json_type_string:
 
-				xmlNewChild(xmlNode, NULL, BAD_CAST key, BAD_CAST json_object_get_string(val));
-
-			break;
 			case json_type_object:
 
 				object = val;
+				printf("%s\n", key);
 				if(strcmp(key, jsonRootName) != 0){
 					xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST key);
 					xmlAddChildList(xmlNode, newNode);
 					jsonToXml(object, newNode);
 				}
-			 jsonToXml(object, xmlNode);
+				else{
+			 		jsonToXml(object, xmlNode);
+				}
 
 			break;
 			case json_type_array:
-	
+
 			  arrLen = json_object_array_length(val);
 				int i = 0;
 				for(i = 0 ; i < arrLen ; i++){
@@ -238,13 +237,13 @@ static void csvToJson(csvRow* csvObj, json_object *jobj){
 int main(){
 
 
-/*
- 	xmlDocPtr doc = NULL;
+
+ 	/*xmlDocPtr doc = NULL;
 	xmlNode *root_element = NULL;
   xmlNode *next_element = NULL;
-	const char *fileName = "test.xml";
-	doc = xmlParseFile(Filename);
-	json_object *json_root = json_object_new_object();
+	const char *fileName = "lab5.xml";
+	doc = xmlParseFile(fileName);
+
 	if (doc == NULL){
 		printf("Error: %s has not been found. Please check the file and try again.\n", fileName);
 		exit(0);
@@ -255,10 +254,10 @@ int main(){
 	json_object *json_root = json_object_new_object();
 	xmlToJson(root_element, json_root);
 	printf("%s\n", json_object_to_json_string(json_root));
-	json_object_to_file("test.json", json_root);
+	json_object_to_file("test.json", json_root);*/
 
 
-  */
+
 
 	json_object * jobj = json_tokener_parse(readFile("test.json"));
 	xmlDocPtr doc = xmlNewDoc("1.0");
