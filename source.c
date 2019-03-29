@@ -193,7 +193,7 @@ static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
 
 			break;
 			case json_type_array:
-
+	
 			  arrLen = json_object_array_length(val);
 				int i = 0;
 				for(i = 0 ; i < arrLen ; i++){
@@ -202,6 +202,11 @@ static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
 					xmlAddChildList(xmlNode, newNode);
 					jsonToXml(object, newNode);
 				}
+
+			break;
+			default: // FOR ANY JSON TYPE
+
+				xmlNewChild(xmlNode, NULL, BAD_CAST key, BAD_CAST json_object_get_string(val));
 
 			break;
 		}
@@ -255,21 +260,21 @@ int main(){
 
   */
 
-	/*json_object * jobj = json_tokener_parse(readFile("test.json"));
+	json_object * jobj = json_tokener_parse(readFile("test.json"));
 	xmlDocPtr doc = xmlNewDoc("1.0");
 	jsonRootName = jsonGetRootName(jobj);
 	xmlNodePtr root_node = xmlNewNode(NULL, jsonRootName);
 	jsonToXml(jobj, root_node);
 	xmlDocSetRootElement(doc, root_node);
-	xmlSaveFormatFileEnc("write.xml", doc, "UTF-8", 0);*/
+	xmlSaveFormatFileEnc("write.xml", doc, "UTF-8", 0);
 
-	csvFile = readFile("inputForDebian.csv");
+	/*csvFile = readFile("inputForDebian.csv");
 	csvColumnNames = csvGetRow();
 	csvRow* csv_root;
 	csv_root = csvParseFile();
 
 	json_object *json_root;
-	csvToJson(csv_root, json_root);
+	csvToJson(csv_root, json_root);*/
 
 	return 0;
 }
