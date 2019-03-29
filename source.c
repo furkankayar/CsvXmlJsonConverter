@@ -6,7 +6,9 @@
 
 const char* jsonRootName;
 char** csvColumnNames;
+int csvColumnNumber = 0;
 char* csvFile;
+int columnCount = 0;
 
 typedef struct _csvRow{
 
@@ -14,6 +16,50 @@ typedef struct _csvRow{
 	struct _csvRow *next;
 
 }csvRow;
+
+static int contains(char **strArr, char *str){
+
+	int i = 0;
+	while(strArr[i] != NULL){
+		if(strcmp(strArr[i], str) == 0)
+			return 1;
+		i++;
+	}
+	return 0;
+}
+
+static char* replaceAll(char* str, char oldCh, char newCh){
+	char *copy = (char*)malloc(sizeof(char) * 500);
+	strcpy(copy, str);
+	int i = 0;
+	for(i = 0 ; i < strlen(copy) ; i++) if(copy[i] == oldCh) copy[i] = newCh;
+	return copy;
+}
+
+static char* trim(const char* str, int option){
+
+	char *copy = (char*)malloc(sizeof(char) * 500);
+	strcpy(copy, str);
+	while(copy[0] == ' ' || copy[0] == '"') copy = copy + 1;
+	while(copy[strlen(copy) - 1] == ' ' || copy[strlen(copy) - 1] == '"') copy[strlen(copy) - 1] = '\0';
+
+	int flag = 0;
+	int k = 0;
+	for(k = 0 ; k < strlen(copy); k++){
+		if(copy[k] == ',') flag = 1;
+	}
+	if(flag && option == 1){
+		k = strlen(copy) + 1;
+		copy[k] = '"';
+		int i = 0;
+		for(i = k - 1 ; i >= 0 ; i--){
+			copy[i] = copy[i - 1];
+		}
+		copy[0] = '"';
+	}
+
+	return copy;
+}
 
 static char* readFile(char* fileName){
 
@@ -100,6 +146,46 @@ static int getXmlElementChildNumber(xmlNode *node){
 	return i;
 }
 
+static void csvCreateColumnNamesByJson(json_object *jsonObj){
+
+	int arrLen = 0;
+	json_object *object;
+	char * str;
+	enum json_type type;
+	json_object_object_foreach(jsonObj, key, val){
+
+		type = json_object_get_type(val);
+		switch(type){
+
+			case json_type_object:
+
+				csvCreateColumnNamesByJson(val);
+
+			break;
+			case json_type_array:
+
+				arrLen = json_object_array_length(val);
+				int i = 0;
+				for(i = 0 ; i < arrLen ; i++){
+					object = json_object_array_get_idx(val, i);
+					csvCreateColumnNamesByJson(object);
+				}
+
+			break;
+			default:
+
+				str = (char*)malloc(sizeof(char) * 200);
+				strcpy(str, key);
+				if(contains(csvColumnNames, str) != 1){
+					csvColumnNames[csvColumnNumber] = (char*)malloc(sizeof(char) * 200);
+					strcat(csvColumnNames[csvColumnNumber], key);
+					csvColumnNumber++;
+				}
+			break;
+		}
+	}
+}
+
 static void xmlToJson(xmlNode * xml_node, json_object * jsonObj){ // PERFECTION
 
 	xmlNode *cur_node = NULL;
@@ -166,7 +252,7 @@ static void xmlToJson(xmlNode * xml_node, json_object * jsonObj){ // PERFECTION
 	}
 }
 
-static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
+static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){ // PERFECTION
 
 	json_object *object;
 	int arrLen;
@@ -180,9 +266,8 @@ static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
 			case json_type_object:
 
 				object = val;
-				printf("%s\n", key);
 				if(strcmp(key, jsonRootName) != 0){
-					xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST key);
+					xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST replaceAll(key, ' ', '_'));
 					xmlAddChildList(xmlNode, newNode);
 					jsonToXml(object, newNode);
 				}
@@ -197,7 +282,7 @@ static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
 				int i = 0;
 				for(i = 0 ; i < arrLen ; i++){
 					object = json_object_array_get_idx(val, i);
-					xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST key);
+					xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST replaceAll(key, ' ', '_'));
 					xmlAddChildList(xmlNode, newNode);
 					jsonToXml(object, newNode);
 				}
@@ -205,7 +290,7 @@ static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
 			break;
 			default: // FOR ANY JSON TYPE
 
-				xmlNewChild(xmlNode, NULL, BAD_CAST key, BAD_CAST json_object_get_string(val));
+				xmlNewChild(xmlNode, NULL, BAD_CAST replaceAll(key, ' ', '_'), BAD_CAST trim(json_object_get_string(val),0));
 
 			break;
 		}
@@ -214,9 +299,6 @@ static void jsonToXml(json_object * jobj, xmlNodePtr xmlNode){
 
 static void csvToJson(csvRow* csvObj, json_object *jobj){ //COMPLETED
 
-	jobj = json_object_new_array();
-
-  int rowCounter = 1;
 	while(csvObj != NULL){
 		json_object *row = json_object_new_object();
 		int i = 0;
@@ -228,11 +310,72 @@ static void csvToJson(csvRow* csvObj, json_object *jobj){ //COMPLETED
 		json_object_array_add(jobj,row);
 		csvObj = csvObj->next;
 	}
-	printf("%s\n", json_object_to_json_string(jobj));
+}
+
+static void csvToXml(csvRow* csvObj, xmlNodePtr xmlNode){ // COMPLETED
+
+	while(csvObj != NULL){
+
+		xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST "row");
+		int i = 0;
+		while(csvObj->columns[i] != NULL){
+			xmlNewChild(newNode, NULL, BAD_CAST replaceAll(csvColumnNames[i], ' ', '_'), BAD_CAST csvObj->columns[i]);
+			i++;
+		}
+		xmlAddChildList(xmlNode, newNode);
+		csvObj = csvObj->next;
+	}
+}
+
+static void jsonToCsv(json_object *jsonObj){ // ON THE WAY
+
+	int arrLen = 0;
+	json_object *object;
+	enum json_type type;
+	json_object_object_foreach(jsonObj, key, val){
+
+		type = json_object_get_type(val);
+		switch(type){
+
+			case json_type_object:
+
+				jsonToCsv(val);
+
+			break;
+			case json_type_array:
+
+				arrLen = json_object_array_length(val);
+				int i = 0;
+				for(i = 0 ; i < arrLen ; i++){
+					object = json_object_array_get_idx(val, i);
+					jsonToCsv(object);
+				}
+
+			break;
+			default:
+
+				while(strcmp(csvColumnNames[columnCount % csvColumnNumber], key) != 0){
+					strcat(csvFile, ",");
+					columnCount++;
+					if(columnCount % csvColumnNumber == 0){
+						csvFile[strlen(csvFile) - 1] = '\0';
+						strcat(csvFile, "\n");
+					}
+				}
+				strcat(csvFile, trim(json_object_to_json_string(val),1));
+				strcat(csvFile, ",");
+				columnCount++;
+				if(columnCount % csvColumnNumber == 0){
+					csvFile[strlen(csvFile) - 1] = '\0';
+					strcat(csvFile, "\n");
+				}
+
+			break;
+		}
+	}
 }
 
 int main(){
-
 
 
  	/*xmlDocPtr doc = NULL;
@@ -264,13 +407,45 @@ int main(){
 	xmlDocSetRootElement(doc, root_node);
 	xmlSaveFormatFileEnc("write.xml", doc, "UTF-8", 0);*/
 
-	csvFile = readFile("inputForDebian.csv");
+
+	/*csvFile = readFile("inputForDebian.csv");
 	csvColumnNames = csvGetRow();
 	csvRow* csv_root;
 	csv_root = csvParseFile();
 
-	json_object *json_root;
+	json_object *json_root = json_object_new_array();
 	csvToJson(csv_root, json_root);
+	printf("%s\n", json_object_to_json_string(json_root));*/
+
+	/*csvFile = readFile("inputForDebian.csv");
+	csvColumnNames = csvGetRow();
+	csvRow* csv_root;
+	csv_root = csvParseFile();
+	xmlDocPtr doc = xmlNewDoc("1.0");
+	xmlNodePtr root_node = xmlNewNode(NULL, "root");
+	csvToXml(csv_root, root_node);
+	xmlDocSetRootElement(doc, root_node);
+	xmlSaveFormatFileEnc("csvtoxml.xml", doc, "UTF-8", 0);*/
+
+
+
+	json_object * jobj = json_tokener_parse(readFile("test.json"));
+	csvColumnNames = (char**)malloc(sizeof(char*) * 200);
+	csvFile = (char*)malloc(sizeof(char) * 50000);
+	FILE *fp = fopen("jsontocsv.csv", "w");
+	csvCreateColumnNamesByJson(jobj);
+	int i = 0;
+	while(csvColumnNames[i] != NULL){
+		strcat(csvFile, csvColumnNames[i++]);
+		if(csvColumnNames[i] != NULL)
+			strcat(csvFile, ",");
+		else
+			strcat(csvFile, "\n");
+	}
+	jsonToCsv(jobj);
+	csvFile[strlen(csvFile) - 1] = '\0';
+	fprintf(fp,"%s", csvFile);
+	fclose(fp);
 
 	return 0;
 }
