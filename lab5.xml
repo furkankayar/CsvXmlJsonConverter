@@ -1,6 +1,6 @@
 <Person>
-  <Name>Ali Veli</Name>
-  <Age>Age</Age>
+  <Name id="8">Ali Veli</Name>
+  <Age/>
   <Address>
     <Country>Türkiye</Country>
     <City>İzmir</City>

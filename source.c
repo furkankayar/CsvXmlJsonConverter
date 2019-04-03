@@ -18,6 +18,19 @@ typedef struct _csvRow{
 
 }csvRow;
 
+static char* getFileExtension(char *fileName){
+
+	char *extension = (char*)malloc(sizeof(char) * 50);
+	int i = strlen(fileName) - 1;
+	while(fileName[i - 1] != '.') i--;
+	int k = 0;
+	while(i < strlen(fileName)){
+		extension[k++] = fileName[i++];
+	}
+
+	return extension;
+}
+
 static int contains(char **strArr, char *str){
 
 	int i = 0;
@@ -244,63 +257,67 @@ static void xmlToJson(xmlNode * xml_node, json_object * jsonObj){ // PERFECTION
 
 	for (cur_node = xml_node; cur_node; cur_node = cur_node->next) {
 
-		 if(cur_node->type == XML_ELEMENT_NODE){
+		if(cur_node->type == XML_ELEMENT_NODE){
+			if(getXmlElementChildNumber(cur_node) == 0){
+				if(cur_node->children !=NULL){
+					char *content = cur_node->children->content;
+					int i = 0;
+					for(i = 0 ; i < strlen(content); i++)
+						if(content[i] == '\n') content[i] = ' ';
 
-			 if(getXmlElementChildNumber(cur_node) == 0){
-				 if(cur_node->children !=NULL){
-				 char *content = cur_node->children->content;
-				 int i = 0;
-				 for(i = 0 ; i < strlen(content); i++){
-					 if(content[i] == '\n') content[i] = ' ';
-				 }
-				 newObj = json_object_new_string(cur_node->children->content);
-			 }
-			 else{
-				 newObj = json_object_new_string("");
-			 }
-			 }
-			 else{
-				 newObj = json_object_new_object();
-				 if(cur_node->properties != NULL){
-					 newObj = json_object_new_object();
-					 xmlAttr *attribute = cur_node->properties;
-					 if(attribute != NULL){
+					if(cur_node->properties != NULL){
+						newObj = json_object_new_object();
+						xmlAttr *attribute = cur_node->properties;
+						if(attribute != NULL){
 							do{
-								char *key = (char*)malloc(sizeof(char) * 100);
-								char *value = (char*)malloc(sizeof(char) * 100);
-								strcpy(key, attribute->name);
-								char *keyword = (char*)malloc(sizeof(char) * 100);
-								keyword[0] = '-';
-								keyword[1] = '\0';
-								strcat(keyword, key);
-								strcpy(value, attribute->children->content);
-								json_object *attrValue = json_object_new_string(value);
-								json_object_object_add(newObj, keyword, attrValue);
+								json_object_object_add(newObj, attribute->name, json_object_new_string(attribute->children->content));
 								attribute = attribute->next;
 							}while(attribute != NULL);
-					 }
-				 }
-			 }
-			 xmlToJson(cur_node->children, newObj); // RECURSION
-			 xmlNode *nextNode = cur_node->next;
-			 while(nextNode && strcmp(nextNode->name, "text") == 0) nextNode = nextNode->next;
-			 if((nextNode && strcmp(cur_node->name, nextNode->name) == 0) || strcmp(cur_node->name, lastName) == 0){
-         if(isArrayCreated == 0){
-           jsonArr = json_object_new_array();
-           json_object_object_add(jsonObj, cur_node->name, jsonArr);
-           json_object_array_add(jsonArr, newObj);
-           strcpy(lastName, cur_node->name);
-           isArrayCreated = 1;
-         }
-         else{
-          json_object_array_add(jsonArr, newObj);
-          strcpy(lastName, cur_node->name);
-         }
-			 }else{
-         isArrayCreated = 0;
-         json_object_object_add(jsonObj, cur_node->name, newObj);
-       }
-		 }
+						}
+						json_object_object_add(newObj, "#text", json_object_new_string(cur_node->children->content));
+				 	}
+					else
+						newObj = json_object_new_string(cur_node->children->content);
+				}
+				else{
+					if(cur_node->properties != NULL){
+						newObj = json_object_new_object();
+						xmlAttr *attribute = cur_node->properties;
+						if(attribute != NULL){
+							do{
+								json_object_object_add(newObj, attribute->name, json_object_new_string(attribute->children->content));
+								attribute = attribute->next;
+							}while(attribute != NULL);
+						}
+				 	}
+					else
+						newObj = json_object_new_string("");
+				}
+			}
+			else{
+				newObj = json_object_new_object();
+			}
+
+			xmlToJson(cur_node->children, newObj); // RECURSION
+			xmlNode *nextNode = cur_node->next;
+			while(nextNode && strcmp(nextNode->name, "text") == 0) nextNode = nextNode->next;
+			if((nextNode && strcmp(cur_node->name, nextNode->name) == 0) || strcmp(cur_node->name, lastName) == 0){
+    		if(isArrayCreated == 0){
+      		jsonArr = json_object_new_array();
+        	json_object_object_add(jsonObj, cur_node->name, jsonArr);
+        	json_object_array_add(jsonArr, newObj);
+      		strcpy(lastName, cur_node->name);
+        	isArrayCreated = 1;
+      	}
+      	else{
+      		json_object_array_add(jsonArr, newObj);
+      		strcpy(lastName, cur_node->name);
+      	}
+			}else{
+      	isArrayCreated = 0;
+      	json_object_object_add(jsonObj, cur_node->name, newObj);
+     	}
+		}
 	}
 }
 
@@ -504,6 +521,14 @@ int main(int argc, char **argv){
 
 
 	if(operation == 1){ // CSV to XML
+		if(strcmp(getFileExtension(inputFile), "csv") != 0){
+			puts("Error: Input file is not a CSV file.");
+			exit(0);
+		}
+		if(strcmp(getFileExtension(outputFile), "xml") != 0){
+			puts("Error: Output file is not a XML file.");
+			exit(0);
+		}
 		csvFile = readFile(inputFile);
 		csvColumnNames = csvGetRow();
 		csvRow* csv_root;
@@ -515,6 +540,14 @@ int main(int argc, char **argv){
 		xmlSaveFormatFileEnc(outputFile, doc, "UTF-8", 0);
 	}
 	else if(operation == 2){ //XML to CSV
+		if(strcmp(getFileExtension(inputFile), "xml") != 0){
+			puts("Error: Input file is not a XML file.");
+			exit(0);
+		}
+		if(strcmp(getFileExtension(outputFile), "csv") != 0){
+			puts("Error: Output file is not a CSV file.");
+			exit(0);
+		}
 		xmlDocPtr doc = NULL;
 		xmlNode *root_element = NULL;
 		xmlNode *next_element = NULL;
@@ -542,6 +575,14 @@ int main(int argc, char **argv){
 		fclose(fp);
 	}
 	else if(operation == 3){//XML to JSON
+		if(strcmp(getFileExtension(inputFile), "xml") != 0){
+			puts("Error: Input file is not a XML file.");
+			exit(0);
+		}
+		if(strcmp(getFileExtension(outputFile), "json") != 0){
+			puts("Error: Output file is not a JSON file.");
+			exit(0);
+		}
 		xmlDocPtr doc = NULL;
 		xmlNode *root_element = NULL;
 		xmlNode *next_element = NULL;
@@ -556,6 +597,14 @@ int main(int argc, char **argv){
 		json_object_to_file(outputFile, json_root);
 	}
 	else if(operation == 4){ // JSON to XML
+		if(strcmp(getFileExtension(inputFile), "json") != 0){
+			puts("Error: Input file is not a JSON file.");
+			exit(0);
+		}
+		if(strcmp(getFileExtension(outputFile), "xml") != 0){
+			puts("Error: Output file is not a XML file.");
+			exit(0);
+		}
 		json_object * jobj = json_tokener_parse(readJsonFile(inputFile));
 		xmlDocPtr doc = xmlNewDoc("1.0");
 		jsonRootName = jsonGetRootName(jobj);
@@ -565,6 +614,14 @@ int main(int argc, char **argv){
 		xmlSaveFormatFileEnc(outputFile, doc, "UTF-8", 0);
 	}
 	else if(operation == 5){// CSV to JSON
+		if(strcmp(getFileExtension(inputFile), "csv") != 0){
+			puts("Error: Input file is not a CSV file.");
+			exit(0);
+		}
+		if(strcmp(getFileExtension(outputFile), "json") != 0){
+			puts("Error: Output file is not a JSON file.");
+			exit(0);
+		}
 		csvFile = readFile(inputFile);
 		csvColumnNames = csvGetRow();
 		csvRow* csv_root;
@@ -574,6 +631,14 @@ int main(int argc, char **argv){
 		json_object_to_file(outputFile, json_root);
 	}
 	else if(operation == 6){ // JSON to CSV
+		if(strcmp(getFileExtension(inputFile), "json") != 0){
+			puts("Error: Input file is not a JSON file.");
+			exit(0);
+		}
+		if(strcmp(getFileExtension(outputFile), "csv") != 0){
+			puts("Error: Output file is not a CSV file.");
+			exit(0);
+		}
 		json_object * jobj = json_tokener_parse(readJsonFile(inputFile));
 		csvColumnNames = (char**)malloc(sizeof(char*) * 200);
 		csvFile = (char*)malloc(sizeof(char) * 50000);
@@ -593,6 +658,14 @@ int main(int argc, char **argv){
 		fclose(fp);
 	}
 	else if(operation == 7){ // XML validate
+		if(strcmp(getFileExtension(inputFile), "xml") != 0){
+			puts("Error: Input file is not a XML file.");
+			exit(0);
+		}
+		if(strcmp(getFileExtension(outputFile), "xsd") != 0){
+			puts("Error: Validator file must be XSD.");
+			exit(0);
+		}
 		xmlDocPtr doc;
 		xmlSchemaPtr schema = NULL;
 		xmlSchemaParserCtxtPtr ctxt;
