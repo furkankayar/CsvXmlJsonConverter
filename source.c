@@ -201,12 +201,36 @@ static void csvCreateColumnNamesByJson(json_object *jsonObj){
 				strcpy(str, key);
 				if(contains(csvColumnNames, str) != 1){
 					csvColumnNames[csvColumnNumber] = (char*)malloc(sizeof(char) * 200);
-					strcat(csvColumnNames[csvColumnNumber], key);
+					strcpy(csvColumnNames[csvColumnNumber], key);
 					csvColumnNumber++;
 				}
 			break;
 		}
 	}
+}
+
+static void csvCreateColumnNamesByXml(xmlNode *xml_node){
+
+	xmlAttr *attribute = NULL;
+  xmlNode *cur_node = NULL;
+	char* str = NULL;
+
+  for (cur_node = xml_node; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+    	attribute = cur_node->properties;
+    	while(attribute){
+				str = (char*)malloc(sizeof(char) * 200);
+				strcpy(str, attribute->name);
+				if(contains(csvColumnNames, str) != 1){
+					csvColumnNames[csvColumnNumber] = (char*)malloc(sizeof(char) * 200);
+					strcpy(csvColumnNames[csvColumnNumber], str);
+					csvColumnNumber++;
+				}
+        attribute = attribute->next;
+      }
+    }
+    csvCreateColumnNamesByXml(cur_node->children);
+  }
 }
 
 static void xmlToJson(xmlNode * xml_node, json_object * jsonObj){ // PERFECTION
@@ -346,7 +370,9 @@ static void csvToXml(csvRow* csvObj, xmlNodePtr xmlNode){ // COMPLETED
 		xmlNodePtr newNode = xmlNewNode(NULL, BAD_CAST "row");
 		int i = 0;
 		while(csvObj->columns[i] != NULL){
-			xmlNewChild(newNode, NULL, BAD_CAST replaceAll(csvColumnNames[i], ' ', '_'), BAD_CAST csvObj->columns[i]);
+
+			xmlNewProp(newNode, BAD_CAST replaceAll(csvColumnNames[i], ' ', '_'), BAD_CAST csvObj->columns[i]);
+			//xmlNewChild(newNode, NULL, BAD_CAST replaceAll(csvColumnNames[i], ' ', '_'), BAD_CAST csvObj->columns[i]);
 			i++;
 		}
 		xmlAddChildList(xmlNode, newNode);
@@ -402,6 +428,42 @@ static void jsonToCsv(json_object *jsonObj){ //COMPLETED
 	}
 }
 
+static void xmlToCsv(xmlNode *xml_node){
+
+	xmlAttr *attribute = NULL;
+  xmlNode *cur_node = NULL;
+	char* str = NULL;
+
+  for (cur_node = xml_node; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+    	attribute = cur_node->properties;
+    	while(attribute){
+				str = (char*)malloc(sizeof(char) * 200);
+				strcpy(str, attribute->name);
+				while(strcmp(csvColumnNames[columnCount % csvColumnNumber], str) != 0){
+					strcat(csvFile, ",");
+					columnCount++;
+					if(columnCount % csvColumnNumber == 0){
+						csvFile[strlen(csvFile) - 1] = '\0';
+						strcat(csvFile, "\n");
+					}
+				}
+				strcat(csvFile, trim(attribute->children->content,1));
+				strcat(csvFile, ",");
+				columnCount++;
+				if(columnCount % csvColumnNumber == 0){
+					csvFile[strlen(csvFile) - 1] = '\0';
+					strcat(csvFile, "\n");
+				}
+
+        attribute = attribute->next;
+      }
+    }
+    xmlToCsv(cur_node->children);
+  }
+}
+
+
 int main(int argc, char **argv){
 
 	char *inputFile;
@@ -433,6 +495,31 @@ int main(int argc, char **argv){
 		xmlSaveFormatFileEnc(outputFile, doc, "UTF-8", 0);
 	}
 	else if(operation == 2){ //XML to CSV
+		xmlDocPtr doc = NULL;
+		xmlNode *root_element = NULL;
+		xmlNode *next_element = NULL;
+		csvFile = (char*)malloc(sizeof(char) * 50000);
+		FILE *fp = fopen(outputFile, "w");
+		doc = xmlParseFile(inputFile);
+		if (doc == NULL){
+			printf("Error: %s has not been found. Please check the file and try again.\n", inputFile);
+			exit(0);
+		}
+		root_element = xmlDocGetRootElement(doc);
+		csvColumnNames = (char**)malloc(sizeof(char*) * 200);
+		csvCreateColumnNamesByXml(root_element);
+		int i = 0;
+		while(i < csvColumnNumber){
+			strcat(csvFile, csvColumnNames[i++]);
+			if(i < csvColumnNumber)
+				strcat(csvFile, ",");
+			else
+				strcat(csvFile, "\n");
+		}
+		xmlToCsv(root_element);
+		csvFile[strlen(csvFile) - 1] = '\0';
+		fprintf(fp,"%s", csvFile);
+		fclose(fp);
 	}
 	else if(operation == 3){//XML to JSON
 		xmlDocPtr doc = NULL;
@@ -473,9 +560,9 @@ int main(int argc, char **argv){
 		FILE *fp = fopen(outputFile, "w");
 		csvCreateColumnNamesByJson(jobj);
 		int i = 0;
-		while(csvColumnNames[i] != NULL){
+		while(i < csvColumnNumber){
 			strcat(csvFile, csvColumnNames[i++]);
-			if(csvColumnNames[i] != NULL)
+			if(i < csvColumnNumber)
 				strcat(csvFile, ",");
 			else
 				strcat(csvFile, "\n");
