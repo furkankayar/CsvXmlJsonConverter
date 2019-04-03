@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <libxml/xmlschemastypes.h>
 #include <string.h>
 #include <json/json.h>
 
@@ -448,7 +449,7 @@ static void xmlToCsv(xmlNode *xml_node){
 						strcat(csvFile, "\n");
 					}
 				}
-				strcat(csvFile, trim(attribute->children->content,1));
+				strcat(csvFile, trim(attribute->children->content,0));
 				strcat(csvFile, ",");
 				columnCount++;
 				if(columnCount % csvColumnNumber == 0){
@@ -461,6 +462,25 @@ static void xmlToCsv(xmlNode *xml_node){
     }
     xmlToCsv(cur_node->children);
   }
+}
+
+static void xmlValidate(xmlDocPtr doc, xmlSchemaPtr schema){
+
+	xmlSchemaValidCtxtPtr ctxt;
+	int ret;
+
+	ctxt = xmlSchemaNewValidCtxt(schema); //create an xml schemas validation context
+  ret = xmlSchemaValidateDoc(ctxt, doc); //validate a document tree in memory
+  if (ret == 0)
+    printf("XML file validates.\n");
+  else if (ret > 0) //positive error code number
+	  printf("XML file fails to validate.\n");
+  else
+    printf("XML file validation generated an internal error.\n");
+
+	xmlSchemaFreeValidCtxt(ctxt); //free the resources associated to the schema validation context
+  xmlFreeDoc(doc);
+
 }
 
 
@@ -573,81 +593,27 @@ int main(int argc, char **argv){
 		fclose(fp);
 	}
 	else if(operation == 7){ // XML validate
+		xmlDocPtr doc;
+		xmlSchemaPtr schema = NULL;
+		xmlSchemaParserCtxtPtr ctxt;
+		xmlLineNumbersDefault(1);
+		ctxt = xmlSchemaNewParserCtxt(outputFile);
+		schema = xmlSchemaParse(ctxt);
+		xmlSchemaFreeParserCtxt(ctxt);
+		doc = xmlReadFile(inputFile, NULL, 0);
+		if(doc == NULL){
+			printf("Error: %s is not found or it is not a valid xml file.\n", inputFile);
+			exit(0);
+		}
+		xmlValidate(doc, schema);
+		xmlSchemaCleanupTypes(); //cleanup the default xml schemas types library
+    xmlCleanupParser(); //cleans memory allocated by the library itself
+    xmlMemoryDump(); //memory dump
 	}
 	else{
 		puts("Error: Wrong operation!");
 		exit(0);
 	}
-
-
- 	/*xmlDocPtr doc = NULL;
-	xmlNode *root_element = NULL;
-  xmlNode *next_element = NULL;
-	const char *fileName = "test.xml";
-	doc = xmlParseFile(fileName);
-
-	if (doc == NULL){
-		printf("Error: %s has not been found. Please check the file and try again.\n", fileName);
-		exit(0);
-	}
-
-
-  root_element = xmlDocGetRootElement(doc);
-	json_object *json_root = json_object_new_object();
-	xmlToJson(root_element, json_root);
-	printf("%s\n", json_object_to_json_string(json_root));
-	json_object_to_file("test.json", json_root);*/
-
-
-
-
-	/*json_object * jobj = json_tokener_parse(readFile("test.json"));
-	xmlDocPtr doc = xmlNewDoc("1.0");
-	jsonRootName = jsonGetRootName(jobj);
-	xmlNodePtr root_node = xmlNewNode(NULL, jsonRootName);
-	jsonToXml(jobj, root_node);
-	xmlDocSetRootElement(doc, root_node);
-	xmlSaveFormatFileEnc("write.xml", doc, "UTF-8", 0);*/
-
-
-	/*csvFile = readFile("inputForDebian.csv");
-	csvColumnNames = csvGetRow();
-	csvRow* csv_root;
-	csv_root = csvParseFile();
-
-	json_object *json_root = json_object_new_array();
-	csvToJson(csv_root, json_root);
-	printf("%s\n", json_object_to_json_string(json_root));*/
-
-	/*csvFile = readFile("inputForDebian.csv");
-	csvColumnNames = csvGetRow();
-	csvRow* csv_root;
-	csv_root = csvParseFile();
-	xmlDocPtr doc = xmlNewDoc("1.0");
-	xmlNodePtr root_node = xmlNewNode(NULL, "root");
-	csvToXml(csv_root, root_node);
-	xmlDocSetRootElement(doc, root_node);
-	xmlSaveFormatFileEnc("csvtoxml.xml", doc, "UTF-8", 0);*/
-
-
-
-	/*json_object * jobj = json_tokener_parse(readFile("test.json"));
-	csvColumnNames = (char**)malloc(sizeof(char*) * 200);
-	csvFile = (char*)malloc(sizeof(char) * 50000);
-	FILE *fp = fopen("jsontocsv.csv", "w");
-	csvCreateColumnNamesByJson(jobj);
-	int i = 0;
-	while(csvColumnNames[i] != NULL){
-		strcat(csvFile, csvColumnNames[i++]);
-		if(csvColumnNames[i] != NULL)
-			strcat(csvFile, ",");
-		else
-			strcat(csvFile, "\n");
-	}
-	jsonToCsv(jobj);
-	csvFile[strlen(csvFile) - 1] = '\0';
-	fprintf(fp,"%s", csvFile);
-	fclose(fp);*/
 
 	return 0;
 }

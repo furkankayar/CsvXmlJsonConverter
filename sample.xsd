@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" >
+	<xs:element name= "Students" type="StudentsType"/>
+	<xs:complexType name="StudentsType">
+		<xs:sequence>
+			<xs:element name="Student" type="StudentType" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="StudentType">
+		<xs:sequence>
+			<xs:element name="id" type="idType" maxOccurs="1"/>
+			<xs:element name="name" type="xs:string" maxOccurs="1"/>
+			<xs:element name="surname" type="xs:string" maxOccurs="1"/>
+			<xs:element name="course" type="courseType" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="courseType">
+		<xs:sequence>
+			<xs:element name="code">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="[A-Z][A-Z][A-Z][0-9][0-9][0-9][0-9]"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="credit" type="creditType"/>
+			<xs:element name = "midterm_1" type="examType" minOccurs ="1" maxOccurs="1"/>
+			<xs:element name = "midterm_2" type="examType" minOccurs ="0" maxOccurs="1"/>
+			<xs:element name = "homework_1" type="examType" minOccurs ="0" maxOccurs="1"/>
+			<xs:element name = "homework_2" type="examType" minOccurs ="0" maxOccurs="1"/>
+			<xs:element name = "homework_3" type="examType" minOccurs ="0" maxOccurs="1"/>
+          	<xs:element name="final" type="examType" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="grade">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:pattern value="[A-F]|[A-F][A-F]"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="status">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="Successful"/>
+						<xs:enumeration value="Failed"/>
+						<xs:enumeration value="Absent"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:simpleType name="creditType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="2"/>
+			<xs:maxInclusive value="10"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="examType">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0"/>
+			<xs:maxInclusive value="100"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="idType">
+		<xs:restriction base="xs:string">
+			<xs:length value="10"/>
+			<xs:pattern value="[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]"/>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>
