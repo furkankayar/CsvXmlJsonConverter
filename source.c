@@ -1,3 +1,15 @@
+/* C program to convert file types each other.
+   Operation 1 - CSV to XML
+ 	 Operation 2 - XML to CSV
+	 Operation 3 - XML to JSON
+	 Operation 4 - JSON to XML
+	 Operation 5 - CSV to JSON
+	 Operation 6 - JSON to CSV
+	 Operation 7 - XML validates with XSD
+
+	 Author: Furkan Kayar
+*/
+
 #include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -569,7 +581,7 @@ int main(int argc, char **argv){
 				strcat(csvFile, "\n");
 		}
 		xmlToCsv(root_element);
-		csvFile[strlen(csvFile) - 1] = '\0';
+		csvFile[strlen(csvFile) - 1] = '\n';
 		fprintf(fp,"%s", csvFile);
 		fclose(fp);
 		puts("Only xml attributes are written as new columns in csv.");
