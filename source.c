@@ -8,6 +8,12 @@
 	 Operation 7 - XML validates with XSD
 
 	 Author: Furkan Kayar
+	 Date: 04.04.2019
+
+	 All development steps can be watched from link below.
+	 https://github.com/furkankayar/DOM
+	 **If page does not open (404 Not found), repository can be private. It will be public as soon as possible.(It was private to avoid plagiarism.)
+
 */
 
 #include <stdio.h>
@@ -548,7 +554,7 @@ int main(int argc, char **argv){
 		xmlNodePtr root_node = xmlNewNode(NULL, "root");
 		csvToXml(csv_root, root_node);
 		xmlDocSetRootElement(doc, root_node);
-		xmlSaveFormatFileEnc(outputFile, doc, "UTF-8", 0);
+		xmlSaveFormatFileEnc(outputFile, doc, "UTF-8", 2);
 	}
 	else if(operation == 2){ //XML to CSV
 		if(strcmp(getFileExtension(inputFile), "xml") != 0){
@@ -623,7 +629,7 @@ int main(int argc, char **argv){
 		xmlNodePtr root_node = xmlNewNode(NULL, jsonRootName);
 		jsonToXml(jobj, root_node);
 		xmlDocSetRootElement(doc, root_node);
-		xmlSaveFormatFileEnc(outputFile, doc, "UTF-8", 0);
+		xmlSaveFormatFileEnc(outputFile, doc, "UTF-8", 2);
 	}
 	else if(operation == 5){// CSV to JSON
 		if(strcmp(getFileExtension(inputFile), "csv") != 0){
